@@ -1,18 +1,22 @@
 import { UnionFind } from "./UnionFind";
 
 export class Percolation {
-  private unionFind: UnionFind;
   private openSites: number[];
+  private unionFind: UnionFind;
+  private fullUnionFind: UnionFind;
   private size: number;
   private openSitesCount: number;
+  private bottomIndex: number;
 
   constructor(size: number) {
     const sitesCount = size * size + 2;
 
     this.unionFind = new UnionFind(sitesCount);
+    this.fullUnionFind = new UnionFind(sitesCount - 1);
     this.openSites = [];
     this.size = size;
     this.openSitesCount = 0;
+    this.bottomIndex = size * size + 1;
 
     for (let i = 0; i < sitesCount; i++) {
       if (i === 0 || i === sitesCount - 1) {
@@ -23,80 +27,51 @@ export class Percolation {
     }
   }
 
-  private connectSide(
-    row: number,
-    col: number,
-    side: "T" | "B" | "L" | "R"
-  ): void {
-    let nextRow: number;
-    let nextCol: number;
+  public open(index: number): void {
+    if (this.isOpen(index)) return;
 
-    switch (side) {
-      case "T":
-        nextRow = row - 1;
-        nextCol = col;
-
-        if (nextRow === 0) {
-          this.unionFind.union(0, this.indexOf(row, col));
-          return;
-        }
-        break;
-      case "B":
-        nextRow = row + 1;
-        nextCol = col;
-
-        if (nextRow === this.size + 1) {
-          this.unionFind.union(
-            this.size * this.size + 1,
-            this.indexOf(row, col)
-          );
-          return;
-        }
-        break;
-      case "L":
-        nextRow = row;
-        nextCol = col - 1;
-
-        if (nextCol === 0) return;
-        break;
-      case "R":
-        nextRow = row;
-        nextCol = col + 1;
-
-        if (nextCol === this.size + 1) return;
-        break;
+    if (index - this.size <= 0) {
+      this.unionFind.union(0, index);
+      this.fullUnionFind.union(0, index);
     }
 
-    if (!this.isOpen(nextRow, nextCol)) return;
+    if (index + this.size >= this.bottomIndex) {
+      this.unionFind.union(index, this.bottomIndex);
+    }
 
-    this.unionFind.union(
-      this.indexOf(row, col),
-      this.indexOf(nextRow, nextCol)
-    );
-  }
+    if (index - this.size > 0 && this.isOpen(index - this.size)) {
+      this.unionFind.union(index, index - this.size);
+      this.fullUnionFind.union(index, index - this.size);
+    }
 
-  public indexOf(row: number, col: number): number {
-    return row * this.size + col - this.size;
-  }
+    if (
+      index + this.size < this.bottomIndex &&
+      this.isOpen(index + this.size)
+    ) {
+      this.unionFind.union(index, index + this.size);
+      this.fullUnionFind.union(index, index + this.size);
+    }
 
-  public open(row: number, col: number): void {
-    if (this.isOpen(row, col)) return;
+    if (index % this.size != 1 && this.isOpen(index - 1)) {
+      this.unionFind.union(index, index - 1);
+      this.fullUnionFind.union(index, index - 1);
+    }
 
-    this.connectSide(row, col, "T");
-    this.connectSide(row, col, "B");
-    this.connectSide(row, col, "L");
-    this.connectSide(row, col, "R");
+    if (index % this.size != 0 && this.isOpen(index + 1)) {
+      this.unionFind.union(index, index + 1);
+      this.fullUnionFind.union(index, index + 1);
+    }
 
-    this.openSites[this.indexOf(row, col)] = 1;
+    this.openSites[index] = 1;
     this.openSitesCount++;
   }
 
-  public isOpen(row: number, col: number): boolean {
-    return !!this.openSites[this.indexOf(row, col)];
+  public isOpen(index: number): boolean {
+    return !!this.openSites[index];
   }
 
-  public isFull(row: number, col: number): boolean {
-    return this.unionFind.connected(0, this.indexOf(row, col));
+  public isFull(index: number): boolean {
+    return this.fullUnionFind.connected(0, index);
   }
 
   public numberOfOpenSites(): number {
@@ -104,6 +79,6 @@ export class Percolation {
   }
 
   public percolates(): boolean {
-    return this.unionFind.connected(0, this.size * this.size + 1);
+    return this.unionFind.connected(0, this.bottomIndex);
   }
 }
