@@ -1,72 +1,91 @@
-import { Percolation } from "./utils/Percolation";
-import { useState, useRef, useEffect } from "preact/hooks";
-import { randomIntFromInterval } from "./utils/randomIntFromInterval";
-import { timer } from "./utils/timer";
-
-const N = 50;
-const CANVAS_DIMENSION = 900;
-const SITE_DIMENSION = CANVAS_DIMENSION / N;
+import PercolationGrid from "./components/PercolationGrid";
+import PercolationGraph from "./components/PercolationGraph";
+import { PERCOLATION_THRESHOLD } from "./constants/constants";
 
 const App = () => {
-  const [percolation, setPercolation] = useState(new Percolation(N));
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    canvasRef.current!.width = CANVAS_DIMENSION;
-    canvasRef.current!.height = CANVAS_DIMENSION;
-
-    const context = canvasRef.current!.getContext("2d");
-
-    draw(context!, percolation);
-  }, []);
-
-  const draw = (
-    context: CanvasRenderingContext2D,
-    percolation: Percolation
-  ) => {
-    for (let i = 1, x = 0, y = 0; i < N * N + 1; i++, x += SITE_DIMENSION) {
-      if (x >= CANVAS_DIMENSION) {
-        x = 0;
-        y += SITE_DIMENSION;
-      }
-      if (percolation.isFull(i)) {
-        context.fillStyle = "#00FFFF";
-      } else if (percolation.isOpen(i)) {
-        context.fillStyle = "white";
-      } else {
-        context.fillStyle = "black";
-      }
-      context.fillRect(x, y, SITE_DIMENSION, SITE_DIMENSION);
-    }
-  };
-
-  const percolate = async () => {
-    setPercolation(new Percolation(N));
-
-    const context = canvasRef.current!.getContext("2d");
-
-    while (!percolation.percolates()) {
-      const index = randomIntFromInterval(1, N * N);
-
-      if (percolation.isOpen(index)) continue;
-
-      percolation.open(index);
-
-      draw(context!, percolation);
-
-      await timer(10);
-    }
-
-    console.log(percolation.numberOfOpenSites() / (N * N));
-  };
-
   return (
-    <section>
-      <canvas className="border border-gray-700" ref={canvasRef}></canvas>
-      <button onClick={percolate} className="px-6 py-2 border rounded-lg">
-        Percolate
-      </button>
-    </section>
+    <main className="pt-16 pb-12 px-4">
+      <article className="prose max-w-7xl mx-auto">
+        <h1>
+          Estimating the value of the Percolation threshold via Monte Carlo
+          simulation
+        </h1>
+        <h2>Percolation</h2>
+        <p>
+          Given a composite systems comprised of randomly distributed insulating
+          and metallic materials: what fraction of the materials need to be
+          metallic so that the composite system is an electrical conductor?
+          Given a porous landscape with water on the surface (or oil below),
+          under what conditions will the water be able to drain through to the
+          bottom (or the oil to gush through to the surface)? Scientists have
+          defined an abstract process known as percolation to model such
+          situations.
+        </p>
+        <h2>The model</h2>
+        <p>
+          A percolation system is modeled using an n-by-n grid of sites. Each
+          site is either open or blocked. A full site is an open site that can
+          be connected to an open site in the top row via a chain of neighboring
+          (left, right, up, down) open sites. The system is said to percolate if
+          there is a full site in the bottom row. In other words, a system
+          percolates if we fill all open sites connected to the top row and that
+          process fills some open site on the bottom row. (For the
+          insulating/metallic materials example, the open sites correspond to
+          metallic materials, so that a system that percolates has a metallic
+          path from top to bottom, with full sites conducting. For the porous
+          substance example, the open sites correspond to empty space through
+          which water might flow, so that a system that percolates lets water
+          fill open sites, flowing from top to bottom.)
+        </p>
+        <h2>The problem</h2>
+        <p>
+          In a famous scientific problem, researchers are interested in the
+          following question: if sites are independently set to be open with
+          probability p (and therefore blocked with probability 1 - p), what is
+          the probability that the system percolates? When p equals 0, the
+          system does not percolate; when p equals 1, the system percolates.
+        </p>
+        <p>
+          When n is sufficiently large, there is a threshold value p* such that
+          when p {"<"} p{"*"} a random n-by-n grid almost never percolates, and
+          when p {">"} p*, a random n-by-n grid almost always percolates. No
+          mathematical solution for determining the percolation threshold p* has
+          yet been derived. We shall estimate p* with Monte Carlo simulation.
+        </p>
+        <h2>Monte Carlo simulation</h2>
+        <p>
+          To estimate the percolation threshold, consider the following
+          computational experiment:
+        </p>
+        <ul>
+          <li>Initialize all sites to be blocked.</li>
+          <li>
+            <p>Repeat the following until the system percolates:</p>
+            <ul>
+              <li>
+                Choose a site uniformly at random among all blocked sites.
+              </li>
+              <li>Open the site.</li>
+            </ul>
+          </li>
+          <li>
+            The fraction of sites that are opened when the system percolates
+            provides an estimate of the percolation threshold.
+          </li>
+        </ul>
+        <figure>
+          <PercolationGrid />
+        </figure>
+        <p>
+          By repeating this computation experiment T times and averaging the
+          results, we obtain a more accurate estimate of the percolation
+          threshold, p = {PERCOLATION_THRESHOLD}.
+        </p>
+        <figure>
+          <PercolationGraph />
+        </figure>
+      </article>
+    </main>
   );
 };
 

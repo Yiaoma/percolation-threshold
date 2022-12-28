@@ -1,30 +1,22 @@
 import { UnionFind } from "./UnionFind";
 
 export class Percolation {
-  private openSites: number[];
-  private unionFind: UnionFind;
-  private fullUnionFind: UnionFind;
   private size: number;
   private openSitesCount: number;
+  private unionFind: UnionFind;
+  private fullUnionFind: UnionFind;
+  private openSites: number[];
   private bottomIndex: number;
 
   constructor(size: number) {
-    const sitesCount = size * size + 2;
+    const sitesCount = size * size;
 
-    this.unionFind = new UnionFind(sitesCount);
-    this.fullUnionFind = new UnionFind(sitesCount - 1);
-    this.openSites = [];
     this.size = size;
     this.openSitesCount = 0;
-    this.bottomIndex = size * size + 1;
-
-    for (let i = 0; i < sitesCount; i++) {
-      if (i === 0 || i === sitesCount - 1) {
-        this.openSites.push(1);
-      } else {
-        this.openSites.push(0);
-      }
-    }
+    this.bottomIndex = sitesCount + 2;
+    this.openSites = new Array(sitesCount).fill(0);
+    this.unionFind = new UnionFind(sitesCount + 2);
+    this.fullUnionFind = new UnionFind(sitesCount + 1);
   }
 
   public open(index: number): void {
@@ -62,12 +54,12 @@ export class Percolation {
       this.fullUnionFind.union(index, index + 1);
     }
 
-    this.openSites[index] = 1;
+    this.openSites[index - 1] = 1;
     this.openSitesCount++;
   }
 
   public isOpen(index: number): boolean {
-    return !!this.openSites[index];
+    return !!this.openSites[index - 1];
   }
 
   public isFull(index: number): boolean {
